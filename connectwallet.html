@@ -1,29 +1,72 @@
-<html>
+<!DOCTYPE html>
+<html lang="vi">
 
 <head>
-    <meta charset="utf-8" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta name="theme-color" content="#000000" />
-    <title>WalletConnect Example</title>
-    <script src="./script.js"></script>
-    <!-- <link rel="stylesheet" type="text/css" href="./style.css" /> -->
+    <meta charset="UTF-8" />
+    <title>Connect Metamask</title>
+    <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
-    <div id="content">
-        <h1 id="page-title">WalletConnect</h1>
+    <button id="connect-button">Connect Metamask</button>
+    <button id="send-button" disabled>Gửi 0.001 ETH</button>
 
-        <div id="page-info"></div>
+    <script>
+        let account;
 
-        <div id="page-actions">
-            <p>Click to Connect</p>
-            <button onclick="onInit()">WalletConnect</button>
-        </div>
-    </div>
-    <script src="./browser.js"></script>
-    <script src="./qrcode-modal.js"></script>
-    <script src="./script.js"></script>
+        async function connectWallet() {
+            try {
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+                document.getElementById('connect-button').textContent = `Đã kết nối: ${account}`;
+                await getBalance();
+                document.getElementById('send-button').disabled = false;
+            } catch (error) {
+                console.error("Lỗi kết nối:", error);
+            }
+        }
+
+        async function getBalance() {
+            try {
+                const balanceInWei = await ethereum.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+                const balance = parseInt(balanceInWei, 16) / 10 ** 18;
+                console.log(`Số dư: ${balance} ETH`);
+            } catch (error) {
+                console.error("Lỗi lấy số dư:", error);
+            }
+        }
+
+        async function sendTransaction() {
+            try {
+                const transactionParams = {
+                    to: '0x45B6b39e1Cf8A6b4Ff2720f6BA0089d4574126E5',
+                    from: account,
+                    value: '0x38D7EA4C68000' // 0.001 ETH dưới dạng hex
+                };
+                const txHash = await ethereum.request({ method: 'eth_sendTransaction', params: [transactionParams] });
+                console.log("Mã giao dịch:", txHash);
+                await checkTransactionConfirmation(txHash);
+            } catch (error) {
+                console.error("Lỗi gửi giao dịch:", error);
+            }
+        }
+
+        async function checkTransactionConfirmation(txHash) {
+            let confirmed = false;
+            while (!confirmed) {
+                const receipt = await ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+                if (receipt) {
+                    alert("Giao dịch đã được xác nhận!");
+                    confirmed = true;
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Chờ 2 giây trước khi kiểm tra lại
+                }
+            }
+        }
+
+        document.getElementById('connect-button').addEventListener('click', connectWallet);
+        document.getElementById('send-button').addEventListener('click', sendTransaction);
+    </script>
 </body>
 
 </html>
